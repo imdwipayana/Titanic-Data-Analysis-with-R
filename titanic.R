@@ -7,7 +7,7 @@ test <- read.csv(file="https://raw.githubusercontent.com/imdwipayana/DATA/main/D
 
 #-------------------------------------------
 # You may check the head and tail by using:
-# head(titanic.train)
-# tail(titanic.train)
+# head(train)
+# tail(train)
 #-------------------------------------------
-head(titanic.train)
+head(train)
