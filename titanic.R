@@ -74,7 +74,7 @@ names(test)
 all.data <- rbind(train,test)
 
 #--------------------------------------------------------------
-# looking for the isTrainSet
+# looking for the divide column on all.data data set
 #--------------------------------------------------------------
 table(all.data$divide)
 
