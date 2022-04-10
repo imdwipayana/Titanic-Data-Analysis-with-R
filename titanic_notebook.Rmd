@@ -1,26 +1,164 @@
+Titanic data set will be analyzed here by using random forest. Here the step by step:
+1. Reading train and test data set
+2. Filling the missing data with their median
+3. Using random forest as predictive model
+4. Writing csv dataframe for Kaggle submission
+
+Setting working directory. May be different for every user.
 ```{r}
-train <- read.csv("https://raw.githubusercontent.com/imdwipayana/DATA/main/Data%20Titanic/train.csv",header=TRUE)
-train
+setwd("~/R/Titanic Data Analysis")
 ```
 
----
-title: "R Notebook"
-output: html_notebook
----
-
-This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
-
-Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
-
+Calling random forest library
 ```{r}
-plot(cars)
-```
-```{r}
-
+library(randomForest)
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+reading the csv data
+```{r}
+train <- read.csv(file="https://raw.githubusercontent.com/imdwipayana/DATA/main/Data%20Titanic/train.csv", stringsAsFactors = FALSE, header = TRUE)
+test <- read.csv(file="https://raw.githubusercontent.com/imdwipayana/DATA/main/Data%20Titanic/test.csv",stringsAsFactors = FALSE,header = TRUE)
+```
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+Check the head and tail of data by using:
+```{r}
+head(train)
+tail(train)
+```
+The next step, we filling the missing data by using the median
+```{r}
+median(train$Age)
+```
+The result is NA because there are some missing data in Age. We try to ignore them first.
+```{r}
+median(train$Age, na.rm = TRUE)
+median(test$Age, na.rm = TRUE)
+```
 
-The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+Calling the column title for each data
+```{r}
+names(train)
+names(test)
+```
+
+There is no Survived column in test data, we create a new Column for test dataset and filling them with NA
+```{r}
+test$Survived <- NA
+```
+
+Checking the number of column for test data set
+```{r}
+ncol(test)
+names(test)
+```
+
+Adding a new column for both train and test data set in purpose to label them either the member of train or test data set.
+```{r}
+train$divide <- TRUE
+test$divide <- FALSE
+```
+
+Merge both data set to be one data set called all.data
+```{r}
+all.data <- rbind(train,test)
+```
+
+Looking for the divide column
+```{r}
+table(all.data$divide)
+```
+
+Testing for empty dataset
+```{r}
+table(all.data$Embarked)
+```
+
+Filling the empty data of Embarked with the majority ('S')
+```{r}
+all.data[all.data$Embarked=='','Embarked'] <- 'S'
+```
+
+Checking again the Embarked column
+```{r}
+table(all.data$Embarked)
+```
+
+Looking empty data on Age
+```{r}
+table(is.na(all.data$Age))
+```
+
+Calculate the median of full data set
+```{r}
+median.age <- median(all.data$Age, na.rm=TRUE)
+```
+
+Filling missing data on Age with its median
+```{r}
+all.data[is.na(all.data$Age),'Age'] <- median.age
+```
+
+Checking there is no remaining missing data on Age
+```{r}
+table(is.na(all.data$Age))
+```
+
+Calculate median of Fare
+```{r}
+median.fare <- median(all.data$Fare, na.rm=TRUE)
+```
+
+Filling the Fare missing data with median of Fare
+```{r}
+all.data[is.na(all.data$Fare), 'Fare'] <- median.fare
+```
+
+Checking Fare missing values
+```{r}
+table(is.na(all.data$Fare))
+```
+
+Create categorical factor using as.factor
+```{r}
+all.data$Pclass <- as.factor(all.data$Pclass)
+all.data$Sex <- as.factor(all.data$Sex)
+all.data$Embarked <- as.factor(all.data$Embarked)
+```
+
+Divide back the full data set into train and test data set
+```{r}
+train <- all.data[all.data$divide==TRUE,]
+test <- all.data[all.data$divide==FALSE,]
+```
+
+Checking data type
+```{r}
+str(train)
+```
+
+Transform Survived column on train data set to be a factor
+```{r}
+train$Survived <- as.factor(train$Survived)
+```
+
+Predictive model using random forest
+```{r}
+survived.app <- "Survived ~ Pclass + Sex + Age + SibSp + Parch + Fare + Embarked"
+survived.formula <- as.formula(survived.app)
+model.titanic <- randomForest(formula=survived.formula, data=train, ntree=500, mtry=3, nodesize=0.01*nrow(test))
+feature.app <- "Pclass + Sex + Age + SibSp + Parch + Fare + Embarked"
+Survived <- predict(model.titanic, newdata = test)
+```
+
+Create data frame for Kaggle submission
+```{r}
+PassengerId <- test$PassengerId
+
+result <- as.data.frame(PassengerId)
+result$Survived <- Survived
+```
+
+Write data to csv file as Kaggle submission
+```{r}
+write.csv(result,file="Submission.csv", row.names=FALSE)
+```
